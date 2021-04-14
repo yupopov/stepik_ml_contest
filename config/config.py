@@ -1,0 +1,2 @@
+PATH_TO_DATA = 'data'
+TOTAL_DAYS = 2
