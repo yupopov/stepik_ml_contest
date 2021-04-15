@@ -122,9 +122,8 @@ def get_min_timestamps(actions_df, as_datetime=False):
     -------
     min_timestamps : pd.DataFrame
     """
-    min_timestamps = actions_df.groupby('user_id').timestamp.min().reset_index().rename(
-        columns={'timestamp': 'min_timestamp'}
-    ).set_index('user_id')
+    min_timestamps = actions_df.groupby('user_id')[['timestamp']].min()\
+        .rename(columns={'timestamp': 'min_timestamp'})
     
     if as_datetime:
         min_timestamps.min_timestamp = pd.to_datetime(min_timestamps.min_timestamp, unit='s')
@@ -132,7 +131,7 @@ def get_min_timestamps(actions_df, as_datetime=False):
     return min_timestamps
 
 
-def cut_df_by_time(actions_df, offset=0, hours=2*TOTAL_DAYS):
+def cut_df_by_time(actions_df, offset=0, hours=24*TOTAL_DAYS):
     """
     Оставить в таблице только данные о действия за промежуток
     от offset до offset + hours часов с начала активности пользователя
@@ -150,10 +149,9 @@ def cut_df_by_time(actions_df, offset=0, hours=2*TOTAL_DAYS):
     -------
     actions_data_d : pd.DataFrame
     """   
-    users_min_and_max_timestamps = actions_df.groupby('user_id')[['timestamp']].agg(['min', 'max'])\
-        ['timestamp'].rename(columns={'min': 'min_timestamp', 'max': 'max_timestamp'})
+    users_min_and_max_timestamps = get_min_timestamps(actions_df)
     users_min_and_max_timestamps['min_timestamp'] += 60 * 60 * offset
-    users_min_and_max_timestamps['max_timestamp'] += 60 * 60 * (offset + hours)
+    users_min_and_max_timestamps['max_timestamp'] = users_min_and_max_timestamps['min_timestamp'] + 60 * 60 * hours
     
     actions_data_d = pd.merge(actions_df, users_min_and_max_timestamps, how='inner', on='user_id')
     cond = ((actions_data_d['timestamp'] >= actions_data_d['min_timestamp']) & 
@@ -193,10 +191,12 @@ def cut_dfs_by_time(events, submissions, days=TOTAL_DAYS):
     events_d = events.merge(min_timestamps, how='inner', on='user_id')
     events_d = events_d[events_d.timestamp <= events_d.min_timestamp + activity_duration]
     events_d.drop(columns='min_timestamp', inplace=True)
+    assert events_d.user_id.nunique() == events.user_id.nunique()
         
     submissions_d = submissions.merge(min_timestamps, how='inner', on='user_id')
     submissions_d = submissions_d[submissions_d.timestamp <= submissions_d.min_timestamp + activity_duration]
     submissions_d.drop(columns='min_timestamp', inplace=True)
+    assert submissions_d.user_id.nunique() == submissions.user_id.nunique()
     
     return events_d, submissions_d
 
