@@ -66,7 +66,7 @@ def get_target(actions_df, target_action='correct', threshold=40):
     
     # passed_course = 1, если пройдено > threshold           
     users_count_target['passed_course'] = (users_count_target[target_action] >= threshold)
-    targets = pd.merge(user_ids, users_count_target, how='left').fillna(0).astype('int')
+    targets = pd.merge(user_ids, users_count_target, how='left').fillna(0).astype('int').set_index('user_id')
     
     return targets.drop(columns=target_action)
 
@@ -196,12 +196,11 @@ def cut_dfs_by_time(events, submissions, days=TOTAL_DAYS):
     submissions_d = submissions.merge(min_timestamps, how='inner', on='user_id')
     submissions_d = submissions_d[submissions_d.timestamp <= submissions_d.min_timestamp + activity_duration]
     submissions_d.drop(columns='min_timestamp', inplace=True)
-    assert submissions_d.user_id.nunique() == submissions.user_id.nunique()
     
     return events_d, submissions_d
 
 
-def get_action_counts_by_period(actions_df, period_len, total_hours=24*TOTAL_DAYS, sum_only=False, drop_periods=True):
+def get_action_counts_by_period(actions_df, period_len, total_hours=24*TOTAL_DAYS, sum_only=False, multiindex=False, drop_periods=True):
     """
     Получить разбивку действий пользователя за total_hours часов
     по периодам длиной в period_len часов.
@@ -217,6 +216,9 @@ def get_action_counts_by_period(actions_df, period_len, total_hours=24*TOTAL_DAY
     sum_only : bool
         если True, то возвращает только общую сумму количества активностей за периоды
         если False, то возвращает разбивку по всем типам активностей и сабмитов (6 колонок)
+    multiindex : bool
+        если True и sum_only = True, то возвращает таблицу с мультииндексом (user_id, period)  
+        и колонкой action, содержащей суммарное количество действий за период  
     drop_periods : bool
         если False, то возвращает также таблицу со всеми действиями за total_hours часов
         с указанием периода, в который они были совершены
@@ -272,8 +274,8 @@ def get_action_counts_by_period(actions_df, period_len, total_hours=24*TOTAL_DAY
         for period_name, actions_during_period in actions_df_cut.groupby('period')
     ], axis=1)
     
-    if sum_only:
-        # собрать одноколоночную мультииндексную таблицу, с которой проще будет обращаться
+    if sum_only and multiindex:
+        # собрать одноколоночную мультииндексную таблицу
         actions_by_period = pd.DataFrame(
             actions_by_period.values.flatten(),
             index=pd.MultiIndex.from_product([actions_by_period.index, actions_by_period.columns])
