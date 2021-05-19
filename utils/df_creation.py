@@ -322,6 +322,6 @@ def get_base_features(actions_df, add_num_days=True, target=None):
     if target is not None:
         # добавление целевой переменной
         base_features = base_features.merge(target, on='user_id', how='left').\
-            fillna(0).astype(int).set_index('user_id')
-        
+            fillna(0).astype(int)
+
     return base_features

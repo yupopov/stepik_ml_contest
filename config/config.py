@@ -1,2 +1,3 @@
 PATH_TO_DATA = 'data'
 TOTAL_DAYS = 2
+RANDOM_STATE = 42
