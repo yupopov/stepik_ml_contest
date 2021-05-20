@@ -7,6 +7,8 @@ from sklearn.model_selection import train_test_split, learning_curve, validation
 from sklearn.base import clone
 from sklearn.metrics import roc_auc_score
 
+from config.config import RANDOM_STATE
+
 
 def test_model(model, X, y, fit_params=dict(), test_size=0.1, cv=10, random_state=RANDOM_STATE, figsize=None):
   """
